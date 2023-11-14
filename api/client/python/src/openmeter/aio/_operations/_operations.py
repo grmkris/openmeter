@@ -24,10 +24,11 @@ from azure.core.utils import case_insensitive_dict
 
 from ..._operations._operations import (
     build_create_meter_request,
-    build_create_namespace_request,
+    build_create_portal_token_request,
     build_delete_meter_request,
     build_get_meter_request,
     build_ingest_events_request,
+    build_invalidate_portal_tokens_request,
     build_list_events_request,
     build_list_meter_subjects_request,
     build_list_meters_request,
@@ -47,19 +48,12 @@ ClsType = Optional[Callable[[PipelineResponse[HttpRequest, AsyncHttpResponse], T
 class ClientOperationsMixin(ClientMixinABC):
     @overload
     async def ingest_events(  # pylint: disable=inconsistent-return-statements
-        self,
-        body: JSON,
-        *,
-        om_namespace: Optional[str] = None,
-        content_type: str = "application/cloudevents+json",
-        **kwargs: Any
+        self, body: JSON, *, content_type: str = "application/cloudevents+json", **kwargs: Any
     ) -> None:
         """Ingest events.
 
         :param body: Required.
         :type body: JSON
-        :keyword om_namespace: Optional namespace. Default value is None.
-        :paramtype om_namespace: str
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/cloudevents+json".
         :paramtype content_type: str
@@ -94,19 +88,12 @@ class ClientOperationsMixin(ClientMixinABC):
 
     @overload
     async def ingest_events(  # pylint: disable=inconsistent-return-statements
-        self,
-        body: List[JSON],
-        *,
-        om_namespace: Optional[str] = None,
-        content_type: str = "application/cloudevents-batch+json",
-        **kwargs: Any
+        self, body: List[JSON], *, content_type: str = "application/cloudevents-batch+json", **kwargs: Any
     ) -> None:
         """Ingest events.
 
         :param body: Required.
         :type body: list[JSON]
-        :keyword om_namespace: Optional namespace. Default value is None.
-        :paramtype om_namespace: str
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/cloudevents-batch+json".
         :paramtype content_type: str
@@ -144,14 +131,12 @@ class ClientOperationsMixin(ClientMixinABC):
 
     @distributed_trace_async
     async def ingest_events(  # pylint: disable=inconsistent-return-statements
-        self, body: Union[JSON, List[JSON]], *, om_namespace: Optional[str] = None, **kwargs: Any
+        self, body: Union[JSON, List[JSON]], **kwargs: Any
     ) -> None:
         """Ingest events.
 
         :param body: Is either a JSON type or a [JSON] type. Required.
         :type body: JSON or list[JSON]
-        :keyword om_namespace: Optional namespace. Default value is None.
-        :paramtype om_namespace: str
         :keyword content_type: Body Parameter content-type. Known values are:
          'application/cloudevents+json', 'application/cloudevents-batch+json'. Default value is None.
         :paramtype content_type: str
@@ -207,7 +192,6 @@ class ClientOperationsMixin(ClientMixinABC):
             _json = body
 
         _request = build_ingest_events_request(
-            om_namespace=om_namespace,
             content_type=content_type,
             json=_json,
             headers=_headers,
@@ -232,13 +216,9 @@ class ClientOperationsMixin(ClientMixinABC):
             return cls(pipeline_response, None, {})  # type: ignore
 
     @distributed_trace_async
-    async def list_events(
-        self, *, om_namespace: Optional[str] = None, limit: Optional[int] = None, **kwargs: Any
-    ) -> List[JSON]:
+    async def list_events(self, *, limit: Optional[int] = None, **kwargs: Any) -> List[JSON]:
         """Retrieve latest raw events.
 
-        :keyword om_namespace: Optional namespace. Default value is None.
-        :paramtype om_namespace: str
         :keyword limit: Number of events to return. Default value is None.
         :paramtype limit: int
         :return: list of JSON object
@@ -287,7 +267,6 @@ class ClientOperationsMixin(ClientMixinABC):
         cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
 
         _request = build_list_events_request(
-            om_namespace=om_namespace,
             limit=limit,
             headers=_headers,
             params=_params,
@@ -318,11 +297,9 @@ class ClientOperationsMixin(ClientMixinABC):
         return cast(List[JSON], deserialized)  # type: ignore
 
     @distributed_trace_async
-    async def list_meters(self, *, om_namespace: Optional[str] = None, **kwargs: Any) -> List[JSON]:
+    async def list_meters(self, **kwargs: Any) -> List[JSON]:
         """List meters.
 
-        :keyword om_namespace: Optional namespace. Default value is None.
-        :paramtype om_namespace: str
         :return: list of JSON object
         :rtype: list[JSON]
         :raises ~azure.core.exceptions.HttpResponseError:
@@ -337,8 +314,8 @@ class ClientOperationsMixin(ClientMixinABC):
                           Required. Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                         "eventType": "str",  # The event type to aggregate. Required.
                         "slug": "str",  # A unique identifier for the meter. Required.
-                        "windowSize": "str",  # Required. Known values are: "MINUTE", "HOUR",
-                          and "DAY".
+                        "windowSize": "str",  # Aggregation window size. Required. Known
+                          values are: "MINUTE", "HOUR", and "DAY".
                         "description": "str",  # Optional. A description of the meter.
                         "groupBy": {
                             "str": "str"  # Optional. Named JSONPath expressions to
@@ -364,7 +341,6 @@ class ClientOperationsMixin(ClientMixinABC):
         cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
 
         _request = build_list_meters_request(
-            om_namespace=om_namespace,
             headers=_headers,
             params=_params,
         )
@@ -394,15 +370,11 @@ class ClientOperationsMixin(ClientMixinABC):
         return cast(List[JSON], deserialized)  # type: ignore
 
     @overload
-    async def create_meter(
-        self, body: JSON, *, om_namespace: Optional[str] = None, content_type: str = "application/json", **kwargs: Any
-    ) -> JSON:
+    async def create_meter(self, body: JSON, *, content_type: str = "application/json", **kwargs: Any) -> JSON:
         """Create meter.
 
         :param body: Required.
         :type body: JSON
-        :keyword om_namespace: Optional namespace. Default value is None.
-        :paramtype om_namespace: str
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -419,8 +391,8 @@ class ClientOperationsMixin(ClientMixinABC):
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique identifier for the meter. Required.
-                    "windowSize": "str",  # Required. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
+                    "windowSize": "str",  # Aggregation window size. Required. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
                     "groupBy": {
                         "str": "str"  # Optional. Named JSONPath expressions to extract the
@@ -437,8 +409,8 @@ class ClientOperationsMixin(ClientMixinABC):
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique identifier for the meter. Required.
-                    "windowSize": "str",  # Required. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
+                    "windowSize": "str",  # Aggregation window size. Required. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
                     "groupBy": {
                         "str": "str"  # Optional. Named JSONPath expressions to extract the
@@ -451,15 +423,11 @@ class ClientOperationsMixin(ClientMixinABC):
         """
 
     @overload
-    async def create_meter(
-        self, body: IO, *, om_namespace: Optional[str] = None, content_type: str = "application/json", **kwargs: Any
-    ) -> JSON:
+    async def create_meter(self, body: IO, *, content_type: str = "application/json", **kwargs: Any) -> JSON:
         """Create meter.
 
         :param body: Required.
         :type body: IO
-        :keyword om_namespace: Optional namespace. Default value is None.
-        :paramtype om_namespace: str
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -476,8 +444,8 @@ class ClientOperationsMixin(ClientMixinABC):
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique identifier for the meter. Required.
-                    "windowSize": "str",  # Required. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
+                    "windowSize": "str",  # Aggregation window size. Required. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
                     "groupBy": {
                         "str": "str"  # Optional. Named JSONPath expressions to extract the
@@ -490,13 +458,11 @@ class ClientOperationsMixin(ClientMixinABC):
         """
 
     @distributed_trace_async
-    async def create_meter(self, body: Union[JSON, IO], *, om_namespace: Optional[str] = None, **kwargs: Any) -> JSON:
+    async def create_meter(self, body: Union[JSON, IO], **kwargs: Any) -> JSON:
         """Create meter.
 
         :param body: Is either a JSON type or a IO type. Required.
         :type body: JSON or IO
-        :keyword om_namespace: Optional namespace. Default value is None.
-        :paramtype om_namespace: str
         :keyword content_type: Body Parameter content-type. Known values are: 'application/json'.
          Default value is None.
         :paramtype content_type: str
@@ -513,8 +479,8 @@ class ClientOperationsMixin(ClientMixinABC):
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique identifier for the meter. Required.
-                    "windowSize": "str",  # Required. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
+                    "windowSize": "str",  # Aggregation window size. Required. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
                     "groupBy": {
                         "str": "str"  # Optional. Named JSONPath expressions to extract the
@@ -531,8 +497,8 @@ class ClientOperationsMixin(ClientMixinABC):
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique identifier for the meter. Required.
-                    "windowSize": "str",  # Required. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
+                    "windowSize": "str",  # Aggregation window size. Required. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
                     "groupBy": {
                         "str": "str"  # Optional. Named JSONPath expressions to extract the
@@ -568,7 +534,6 @@ class ClientOperationsMixin(ClientMixinABC):
             _json = body
 
         _request = build_create_meter_request(
-            om_namespace=om_namespace,
             content_type=content_type,
             json=_json,
             content=_content,
@@ -601,13 +566,11 @@ class ClientOperationsMixin(ClientMixinABC):
         return cast(JSON, deserialized)  # type: ignore
 
     @distributed_trace_async
-    async def get_meter(self, meter_id_or_slug: str, *, om_namespace: Optional[str] = None, **kwargs: Any) -> JSON:
+    async def get_meter(self, meter_id_or_slug: str, **kwargs: Any) -> JSON:
         """Get meter by slugs.
 
         :param meter_id_or_slug: A unique identifier for the meter. Required.
         :type meter_id_or_slug: str
-        :keyword om_namespace: Optional namespace. Default value is None.
-        :paramtype om_namespace: str
         :return: JSON object
         :rtype: JSON
         :raises ~azure.core.exceptions.HttpResponseError:
@@ -621,8 +584,8 @@ class ClientOperationsMixin(ClientMixinABC):
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique identifier for the meter. Required.
-                    "windowSize": "str",  # Required. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
+                    "windowSize": "str",  # Aggregation window size. Required. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
                     "groupBy": {
                         "str": "str"  # Optional. Named JSONPath expressions to extract the
@@ -648,7 +611,6 @@ class ClientOperationsMixin(ClientMixinABC):
 
         _request = build_get_meter_request(
             meter_id_or_slug=meter_id_or_slug,
-            om_namespace=om_namespace,
             headers=_headers,
             params=_params,
         )
@@ -679,14 +641,12 @@ class ClientOperationsMixin(ClientMixinABC):
 
     @distributed_trace_async
     async def delete_meter(  # pylint: disable=inconsistent-return-statements
-        self, meter_id_or_slug: str, *, om_namespace: Optional[str] = None, **kwargs: Any
+        self, meter_id_or_slug: str, **kwargs: Any
     ) -> None:
         """Delete meter by slug.
 
         :param meter_id_or_slug: A unique identifier for the meter. Required.
         :type meter_id_or_slug: str
-        :keyword om_namespace: Optional namespace. Default value is None.
-        :paramtype om_namespace: str
         :return: None
         :rtype: None
         :raises ~azure.core.exceptions.HttpResponseError:
@@ -707,7 +667,6 @@ class ClientOperationsMixin(ClientMixinABC):
 
         _request = build_delete_meter_request(
             meter_id_or_slug=meter_id_or_slug,
-            om_namespace=om_namespace,
             headers=_headers,
             params=_params,
         )
@@ -734,11 +693,10 @@ class ClientOperationsMixin(ClientMixinABC):
         self,
         meter_id_or_slug: str,
         *,
-        om_namespace: Optional[str] = None,
         from_parameter: Optional[datetime.datetime] = None,
         to: Optional[datetime.datetime] = None,
         window_size: Optional[str] = None,
-        aggregation: Optional[str] = None,
+        window_time_zone: str = "UTC",
         subject: Optional[List[str]] = None,
         group_by: Optional[List[str]] = None,
         **kwargs: Any
@@ -747,26 +705,20 @@ class ClientOperationsMixin(ClientMixinABC):
 
         :param meter_id_or_slug: A unique identifier for the meter. Required.
         :type meter_id_or_slug: str
-        :keyword om_namespace: Optional namespace. Default value is None.
-        :paramtype om_namespace: str
-        :keyword from_parameter: Start date-time in RFC 3339 format in UTC timezone.
-         Must be aligned with the window size.
+        :keyword from_parameter: Start date-time in RFC 3339 format.
          Inclusive. Default value is None.
         :paramtype from_parameter: ~datetime.datetime
-        :keyword to: End date-time in RFC 3339 format in UTC timezone.
-         Must be aligned with the window size.
+        :keyword to: End date-time in RFC 3339 format.
          Inclusive. Default value is None.
         :paramtype to: ~datetime.datetime
         :keyword window_size: If not specified, a single usage aggregate will be returned for the
          entirety of the specified period for each subject and group. Known values are: "MINUTE",
          "HOUR", and "DAY". Default value is None.
         :paramtype window_size: str
-        :keyword aggregation: If not specified, OpenMeter will use the default aggregation type.
-         As OpenMeter stores aggregates defined by meter config, passing a different aggregate can lead
-         to inaccurate results.
-         For example getting the MIN of SUMs. Known values are: "SUM", "COUNT", "AVG", "MIN", and
-         "MAX". Default value is None.
-        :paramtype aggregation: str
+        :keyword window_time_zone: The value is the name of the time zone as defined in the IANA Time
+         Zone Database (http://www.iana.org/time-zones).
+         If not specified, the UTC timezone will be used. Default value is "UTC".
+        :paramtype window_time_zone: str
         :keyword subject: Default value is None.
         :paramtype subject: list[str]
         :keyword group_by: If not specified a single aggregate will be returned for each subject and
@@ -795,8 +747,8 @@ class ClientOperationsMixin(ClientMixinABC):
                     ],
                     "from": "2020-02-20 00:00:00",  # Optional.
                     "to": "2020-02-20 00:00:00",  # Optional.
-                    "windowSize": "str"  # Optional. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
+                    "windowSize": "str"  # Optional. Aggregation window size. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
                 }
         """
         error_map = {
@@ -815,11 +767,10 @@ class ClientOperationsMixin(ClientMixinABC):
 
         _request = build_query_meter_request(
             meter_id_or_slug=meter_id_or_slug,
-            om_namespace=om_namespace,
             from_parameter=from_parameter,
             to=to,
             window_size=window_size,
-            aggregation=aggregation,
+            window_time_zone=window_time_zone,
             subject=subject,
             group_by=group_by,
             headers=_headers,
@@ -858,15 +809,11 @@ class ClientOperationsMixin(ClientMixinABC):
         return cast(Union[JSON, str], deserialized)  # type: ignore
 
     @distributed_trace_async
-    async def list_meter_subjects(
-        self, meter_id_or_slug: str, *, om_namespace: Optional[str] = None, **kwargs: Any
-    ) -> List[str]:
+    async def list_meter_subjects(self, meter_id_or_slug: str, **kwargs: Any) -> List[str]:
         """List meter subjects.
 
         :param meter_id_or_slug: A unique identifier for the meter. Required.
         :type meter_id_or_slug: str
-        :keyword om_namespace: Optional namespace. Default value is None.
-        :paramtype om_namespace: str
         :return: list of str
         :rtype: list[str]
         :raises ~azure.core.exceptions.HttpResponseError:
@@ -895,7 +842,6 @@ class ClientOperationsMixin(ClientMixinABC):
 
         _request = build_list_meter_subjects_request(
             meter_id_or_slug=meter_id_or_slug,
-            om_namespace=om_namespace,
             headers=_headers,
             params=_params,
         )
@@ -925,18 +871,18 @@ class ClientOperationsMixin(ClientMixinABC):
         return cast(List[str], deserialized)  # type: ignore
 
     @overload
-    async def create_namespace(  # pylint: disable=inconsistent-return-statements
-        self, body: JSON, *, content_type: str = "application/json", **kwargs: Any
-    ) -> None:
-        """Create namespace.
+    async def create_portal_token(
+        self, body: Optional[JSON] = None, *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """create_portal_token.
 
-        :param body: Required.
+        :param body: Default value is None.
         :type body: JSON
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
-        :return: None
-        :rtype: None
+        :return: JSON object
+        :rtype: JSON
         :raises ~azure.core.exceptions.HttpResponseError:
 
         Example:
@@ -944,39 +890,65 @@ class ClientOperationsMixin(ClientMixinABC):
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "namespace": "str"  # A namespace. Required.
+                    "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "subject": "str",  # Required.
+                    "token": "str",  # Required.
+                    "allowedMeterSlugs": [
+                        "str"  # Optional.
+                    ]
+                }
+
+                # response body for status code(s): 200
+                response == {
+                    "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "subject": "str",  # Required.
+                    "token": "str",  # Required.
+                    "allowedMeterSlugs": [
+                        "str"  # Optional.
+                    ]
                 }
         """
 
     @overload
-    async def create_namespace(  # pylint: disable=inconsistent-return-statements
-        self, body: IO, *, content_type: str = "application/json", **kwargs: Any
-    ) -> None:
-        """Create namespace.
+    async def create_portal_token(
+        self, body: Optional[IO] = None, *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """create_portal_token.
 
-        :param body: Required.
+        :param body: Default value is None.
         :type body: IO
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
          Default value is "application/json".
         :paramtype content_type: str
-        :return: None
-        :rtype: None
+        :return: JSON object
+        :rtype: JSON
         :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "subject": "str",  # Required.
+                    "token": "str",  # Required.
+                    "allowedMeterSlugs": [
+                        "str"  # Optional.
+                    ]
+                }
         """
 
     @distributed_trace_async
-    async def create_namespace(  # pylint: disable=inconsistent-return-statements
-        self, body: Union[JSON, IO], **kwargs: Any
-    ) -> None:
-        """Create namespace.
+    async def create_portal_token(self, body: Optional[Union[JSON, IO]] = None, **kwargs: Any) -> JSON:
+        """create_portal_token.
 
-        :param body: Is either a JSON type or a IO type. Required.
+        :param body: Is either a JSON type or a IO type. Default value is None.
         :type body: JSON or IO
         :keyword content_type: Body Parameter content-type. Known values are: 'application/json'.
          Default value is None.
         :paramtype content_type: str
-        :return: None
-        :rtype: None
+        :return: JSON object
+        :rtype: JSON
         :raises ~azure.core.exceptions.HttpResponseError:
 
         Example:
@@ -984,7 +956,22 @@ class ClientOperationsMixin(ClientMixinABC):
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "namespace": "str"  # A namespace. Required.
+                    "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "subject": "str",  # Required.
+                    "token": "str",  # Required.
+                    "allowedMeterSlugs": [
+                        "str"  # Optional.
+                    ]
+                }
+
+                # response body for status code(s): 200
+                response == {
+                    "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "subject": "str",  # Required.
+                    "token": "str",  # Required.
+                    "allowedMeterSlugs": [
+                        "str"  # Optional.
+                    ]
                 }
         """
         error_map = {
@@ -992,6 +979,7 @@ class ClientOperationsMixin(ClientMixinABC):
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
+            400: HttpResponseError,
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
@@ -999,7 +987,7 @@ class ClientOperationsMixin(ClientMixinABC):
         _params = kwargs.pop("params", {}) or {}
 
         content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType[None] = kwargs.pop("cls", None)
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _json = None
@@ -1007,9 +995,12 @@ class ClientOperationsMixin(ClientMixinABC):
         if isinstance(body, (IOBase, bytes)):
             _content = body
         else:
-            _json = body
+            if body is not None:
+                _json = body
+            else:
+                _json = None
 
-        _request = build_create_namespace_request(
+        _request = build_create_portal_token_request(
             content_type=content_type,
             json=_json,
             content=_content,
@@ -1025,7 +1016,128 @@ class ClientOperationsMixin(ClientMixinABC):
 
         response = pipeline_response.http_response
 
-        if response.status_code not in [201]:
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @overload
+    async def invalidate_portal_tokens(  # pylint: disable=inconsistent-return-statements
+        self, body: Optional[JSON] = None, *, content_type: str = "application/json", **kwargs: Any
+    ) -> None:
+        """invalidate_portal_tokens.
+
+        :param body: Default value is None.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "subject": "str"  # Optional.
+                }
+        """
+
+    @overload
+    async def invalidate_portal_tokens(  # pylint: disable=inconsistent-return-statements
+        self, body: Optional[IO] = None, *, content_type: str = "application/json", **kwargs: Any
+    ) -> None:
+        """invalidate_portal_tokens.
+
+        :param body: Default value is None.
+        :type body: IO
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+
+    @distributed_trace_async
+    async def invalidate_portal_tokens(  # pylint: disable=inconsistent-return-statements
+        self, body: Optional[Union[JSON, IO]] = None, **kwargs: Any
+    ) -> None:
+        """invalidate_portal_tokens.
+
+        :param body: Is either a JSON type or a IO type. Default value is None.
+        :type body: JSON or IO
+        :keyword content_type: Body Parameter content-type. Known values are: 'application/json'.
+         Default value is None.
+        :paramtype content_type: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "subject": "str"  # Optional.
+                }
+        """
+        error_map = {
+            401: ClientAuthenticationError,
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            if body is not None:
+                _json = body
+            else:
+                _json = None
+
+        _request = build_invalidate_portal_tokens_request(
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [204]:
             if _stream:
                 await response.read()  # Load the body in memory and close the socket
             map_error(status_code=response.status_code, response=response, error_map=error_map)

@@ -16,8 +16,6 @@ paths:
     post:
       description: Ingest events
       operationId: ingestEvents
-      parameters:
-        - $ref: "#/components/parameters/namespaceParam"
       requestBody:
         required: true
         content:
@@ -42,7 +40,6 @@ paths:
       description: Retrieve latest raw events.
       operationId: listEvents
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
         - name: limit
           in: query
           required: false
@@ -71,8 +68,6 @@ paths:
     get:
       description: List meters
       operationId: listMeters
-      parameters:
-        - $ref: "#/components/parameters/namespaceParam"
       tags:
         - Meters
       responses:
@@ -89,8 +84,6 @@ paths:
     post:
       description: Create meter
       operationId: createMeter
-      parameters:
-        - $ref: "#/components/parameters/namespaceParam"
       tags:
         - Meters
       requestBody:
@@ -117,7 +110,6 @@ paths:
       description: Get meter by slugs
       operationId: getMeter
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
         - $ref: "#/components/parameters/meterIdOrSlug"
       tags:
         - Meters
@@ -136,7 +128,6 @@ paths:
       description: Delete meter by slug
       operationId: deleteMeter
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
         - $ref: "#/components/parameters/meterIdOrSlug"
       tags:
         - Meters
@@ -156,61 +147,13 @@ paths:
       tags:
         - Meters
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
         - $ref: "#/components/parameters/meterIdOrSlug"
-        - name: from
-          in: query
-          required: false
-          description: |
-            Start date-time in RFC 3339 format in UTC timezone.
-            Must be aligned with the window size.
-            Inclusive.
-          schema:
-            type: string
-            format: date-time
-        - name: to
-          in: query
-          required: false
-          description: |
-            End date-time in RFC 3339 format in UTC timezone.
-            Must be aligned with the window size.
-            Inclusive.
-          schema:
-            type: string
-            format: date-time
-        - name: windowSize
-          in: query
-          required: false
-          description: |
-            If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
-          schema:
-            $ref: "#/components/schemas/WindowSize"
-        - name: aggregation
-          in: query
-          required: false
-          deprecated: true
-          description: |
-            If not specified, OpenMeter will use the default aggregation type.
-            As OpenMeter stores aggregates defined by meter config, passing a different aggregate can lead to inaccurate results.
-            For example getting the MIN of SUMs.
-          schema:
-            $ref: "#/components/schemas/MeterAggregation"
-        - name: subject
-          in: query
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
-        - name: groupBy
-          in: query
-          required: false
-          description: |
-            If not specified a single aggregate will be returned for each subject and time window.
-          schema:
-            type: array
-            items:
-              type: string
+        - $ref: "#/components/parameters/queryFrom"
+        - $ref: "#/components/parameters/queryTo"
+        - $ref: "#/components/parameters/queryWindowSize"
+        - $ref: "#/components/parameters/queryWindowTimeZone"
+        - $ref: "#/components/parameters/querySubject"
+        - $ref: "#/components/parameters/queryGroupBy"
       responses:
         "200":
           description: OK
@@ -253,7 +196,6 @@ paths:
       tags:
         - Meters
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
         - $ref: "#/components/parameters/meterIdOrSlug"
       responses:
         "200":
@@ -268,19 +210,46 @@ paths:
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  /api/v1/namespaces:
+  # Portal
+  /api/v1/portal/tokens:
     post:
-      description: Create namespace
-      operationId: createNamespace
+      operationId: createPortalToken
+      tags:
+        - Portal
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Namespace"
+              $ref: "#/components/schemas/PortalToken"
       responses:
-        "201":
-          description: Created
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortalToken"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1/portal/tokens/invalidate:
+    post:
+      operationId: invalidatePortalTokens
+      tags:
+        - Portal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject:
+                  type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 
@@ -423,6 +392,8 @@ components:
           example: My Meter Description
         aggregation:
           $ref: "#/components/schemas/MeterAggregation"
+        windowSize:
+          $ref: "#/components/schemas/WindowSize"
         eventType:
           type: string
           description: The event type to aggregate.
@@ -439,8 +410,6 @@ components:
           example:
             method: "$.method"
             path: "$.path"
-        windowSize:
-          $ref: "#/components/schemas/WindowSize"
       required:
         - slug
         - aggregation
@@ -460,6 +429,7 @@ components:
       description: The aggregation type to use for the meter.
     WindowSize:
       type: string
+      description: Aggregation window size.
       x-go-type: models.WindowSize
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
@@ -494,27 +464,41 @@ components:
           nullable: true
           additionalProperties:
             type: string
+    PortalToken:
+      type: object
+      required:
+        - subject
+        - expiresAt
+        - token
+      properties:
+        subject:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+          readOnly: true
+        token:
+          type: string
+          readOnly: true
+        # Optional, if defined only the specified meters will be allowed
+        allowedMeterSlugs:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
     IdOrSlug:
       type: string
       oneOf:
         # id
         - type: string
-          minLength: 26
-          maxLength: 26
+          pattern: "^[0-9ABCDEFGHJKMNPQRSTVWXYZ]{26}$"
+          description: "ULID (Universally Unique Lexicographically Sortable Identifier)"
         # slug
         - type: string
           pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           minLength: 1
           maxLength: 63
-    Namespace:
-      type: object
-      required:
-        - namespace
-      properties:
-        namespace:
-          type: string
-          description: A namespace
-          example: my-namesapce
 
   parameters:
     meterIdOrSlug:
@@ -524,14 +508,63 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/IdOrSlug"
-    namespaceParam:
-      name: OM-Namespace
-      description: Optional namespace
-      in: header
-      x-go-name: NamespaceInput
+    queryFrom:
+      name: from
+      in: query
+      required: false
+      description: |
+        Start date-time in RFC 3339 format.
+        Inclusive.
       schema:
         type: string
-        pattern: "^[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*$"
+        format: date-time
+    queryTo:
+      name: to
+      in: query
+      required: false
+      description: |
+        End date-time in RFC 3339 format.
+        Inclusive.
+      schema:
+        type: string
+        format: date-time
+    queryWindowSize:
+      name: windowSize
+      in: query
+      required: false
+      description: |
+        If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+      schema:
+        $ref: "#/components/schemas/WindowSize"
+    queryWindowTimeZone:
+      name: windowTimeZone
+      in: query
+      required: false
+      description: |
+        The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+        If not specified, the UTC timezone will be used.
+      schema:
+        type: string
+        default: UTC
+        example: "America/New_York"
+    querySubject:
+      name: subject
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+    queryGroupBy:
+      name: groupBy
+      in: query
+      required: false
+      description: |
+        If not specified a single aggregate will be returned for each subject and time window.
+      schema:
+        type: array
+        items:
+          type: string
 
   responses:
     BadRequestProblemResponse:

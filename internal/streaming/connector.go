@@ -13,16 +13,6 @@ type ListEventsParams struct {
 	Limit int
 }
 
-type QueryParams struct {
-	From           *time.Time
-	To             *time.Time
-	Subject        []string
-	GroupBySubject bool
-	GroupBy        []string
-	Aggregation    *models.MeterAggregation
-	WindowSize     *models.WindowSize
-}
-
 type QueryResult struct {
 	WindowSize *models.WindowSize
 	Values     []*models.MeterValue

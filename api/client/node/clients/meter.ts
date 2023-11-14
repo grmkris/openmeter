@@ -15,37 +15,6 @@ export enum MeterAggregation {
   MAX = 'MAX',
 }
 
-export type MeterValuesParams = {
-  /**
-   * @description Subject(s) to filter by.
-   * @example ["customer-1", "customer-2"]
-   */
-  subject?: string
-  /**
-   * @description Start date.
-   * Must be aligned with the window size.
-   * Inclusive.
-   */
-  from?: Date
-  /**
-   * @description End date.
-   * Must be aligned with the window size.
-   * Inclusive.
-   */
-  to?: Date
-  /**
-   * @description Window Size
-   * If not specified, a single usage aggregate will be returned for the entirety of
-   * the specified period for each subject and group.
-   */
-  windowSize?: WindowSizeType
-  /**
-   * @description Group By
-   * If not specified a single aggregate will be returned for each subject and time window.
-   */
-  groupBy?: string[]
-}
-
 export type MeterQueryParams = {
   /**
    * @description Subject(s) to filter by.
@@ -71,19 +40,20 @@ export type MeterQueryParams = {
    */
   windowSize?: WindowSizeType
   /**
+   * @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+   * If not specified, the UTC timezone will be used.
+   */
+  windowTimeZone?: string
+  /**
    * @description Group By
    * If not specified a single aggregate will be returned for each subject and time window.
    */
   groupBy?: string[]
 }
 
-export type MeterValuesResponse =
-  paths['/api/v1/meters/{meterIdOrSlug}/values']['get']['responses']['200']['content']['application/json']
-
 export type MeterQueryResponse =
   paths['/api/v1/meters/{meterIdOrSlug}/query']['get']['responses']['200']['content']['application/json']
 
-export type MeterValue = components['schemas']['MeterValue']
 export type Meter = components['schemas']['Meter']
 export type WindowSizeType = components['schemas']['WindowSize']
 
@@ -115,26 +85,6 @@ export class MetersClient extends BaseClient {
   }
 
   /**
-   * Get aggregated values of a meter
-   * @deprecated Use `meters.query` instead
-   */
-  public async values(
-    slug: string,
-    params?: MeterValuesParams,
-    options?: RequestOptions
-  ): Promise<MeterValuesResponse> {
-    const searchParams = params
-      ? BaseClient.toURLSearchParams(params)
-      : undefined
-    return this.request<MeterValuesResponse>({
-      method: 'GET',
-      path: `/api/v1/meters/${slug}/values`,
-      searchParams,
-      options,
-    })
-  }
-
-  /**
    * Query a meter
    */
   public async query(
@@ -145,7 +95,7 @@ export class MetersClient extends BaseClient {
     const searchParams = params
       ? BaseClient.toURLSearchParams(params)
       : undefined
-    return this.request<MeterValuesResponse>({
+    return this.request<MeterQueryResponse>({
       method: 'GET',
       path: `/api/v1/meters/${slug}/query`,
       searchParams,

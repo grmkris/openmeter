@@ -30,9 +30,11 @@ export interface paths {
     /** @description List meter subjects */
     get: operations['listMeterSubjects']
   }
-  '/api/v1/namespaces': {
-    /** @description Create namespace */
-    post: operations['createNamespace']
+  '/api/v1/portal/tokens': {
+    post: operations['createPortalToken']
+  }
+  '/api/v1/portal/tokens/invalidate': {
+    post: operations['invalidatePortalTokens']
   }
 }
 
@@ -154,6 +156,7 @@ export interface components {
        */
       description?: string | null
       aggregation: components['schemas']['MeterAggregation']
+      windowSize: components['schemas']['WindowSize']
       /**
        * @description The event type to aggregate.
        * @example api_request
@@ -174,14 +177,16 @@ export interface components {
       groupBy?: {
         [key: string]: string
       }
-      windowSize: components['schemas']['WindowSize']
     }
     /**
      * @description The aggregation type to use for the meter.
      * @enum {string}
      */
     MeterAggregation: 'SUM' | 'COUNT' | 'AVG' | 'MIN' | 'MAX'
-    /** @enum {string} */
+    /**
+     * @description Aggregation window size.
+     * @enum {string}
+     */
     WindowSize: 'MINUTE' | 'HOUR' | 'DAY'
     MeterQueryRow: {
       value: number
@@ -195,14 +200,14 @@ export interface components {
         [key: string]: string
       } | null
     }
-    IdOrSlug: string
-    Namespace: {
-      /**
-       * @description A namespace
-       * @example my-namesapce
-       */
-      namespace: string
+    PortalToken: {
+      subject: string
+      /** Format: date-time */
+      expiresAt: string
+      token: string
+      allowedMeterSlugs?: string[]
     }
+    IdOrSlug: string
   }
   responses: {
     /** @description Bad Request */
@@ -239,8 +244,26 @@ export interface components {
   parameters: {
     /** @description A unique identifier for the meter. */
     meterIdOrSlug: components['schemas']['IdOrSlug']
-    /** @description Optional namespace */
-    namespaceParam?: string
+    /**
+     * @description Start date-time in RFC 3339 format.
+     * Inclusive.
+     */
+    queryFrom?: string
+    /**
+     * @description End date-time in RFC 3339 format.
+     * Inclusive.
+     */
+    queryTo?: string
+    /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group. */
+    queryWindowSize?: components['schemas']['WindowSize']
+    /**
+     * @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+     * If not specified, the UTC timezone will be used.
+     */
+    queryWindowTimeZone?: string
+    querySubject?: string[]
+    /** @description If not specified a single aggregate will be returned for each subject and time window. */
+    queryGroupBy?: string[]
   }
   requestBodies: never
   headers: never
@@ -259,9 +282,6 @@ export interface operations {
         /** @description Number of events to return. */
         limit?: number
       }
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
     }
     responses: {
       /** @description Events response */
@@ -276,11 +296,6 @@ export interface operations {
   }
   /** @description Ingest events */
   ingestEvents: {
-    parameters: {
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
-    }
     requestBody: {
       content: {
         'application/cloudevents+json': components['schemas']['Event']
@@ -298,11 +313,6 @@ export interface operations {
   }
   /** @description List meters */
   listMeters: {
-    parameters: {
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
-    }
     responses: {
       /** @description Meters response */
       200: {
@@ -315,11 +325,6 @@ export interface operations {
   }
   /** @description Create meter */
   createMeter: {
-    parameters: {
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
-    }
     requestBody: {
       content: {
         'application/json': components['schemas']['Meter']
@@ -340,9 +345,6 @@ export interface operations {
   /** @description Get meter by slugs */
   getMeter: {
     parameters: {
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
       path: {
         meterIdOrSlug: components['parameters']['meterIdOrSlug']
       }
@@ -361,9 +363,6 @@ export interface operations {
   /** @description Delete meter by slug */
   deleteMeter: {
     parameters: {
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
       path: {
         meterIdOrSlug: components['parameters']['meterIdOrSlug']
       }
@@ -382,33 +381,12 @@ export interface operations {
   queryMeter: {
     parameters: {
       query?: {
-        /**
-         * @description Start date-time in RFC 3339 format in UTC timezone.
-         * Must be aligned with the window size.
-         * Inclusive.
-         */
-        from?: string
-        /**
-         * @description End date-time in RFC 3339 format in UTC timezone.
-         * Must be aligned with the window size.
-         * Inclusive.
-         */
-        to?: string
-        /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group. */
-        windowSize?: components['schemas']['WindowSize']
-        /**
-         * @deprecated
-         * @description If not specified, OpenMeter will use the default aggregation type.
-         * As OpenMeter stores aggregates defined by meter config, passing a different aggregate can lead to inaccurate results.
-         * For example getting the MIN of SUMs.
-         */
-        aggregation?: components['schemas']['MeterAggregation']
-        subject?: string[]
-        /** @description If not specified a single aggregate will be returned for each subject and time window. */
-        groupBy?: string[]
-      }
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
+        from?: components['parameters']['queryFrom']
+        to?: components['parameters']['queryTo']
+        windowSize?: components['parameters']['queryWindowSize']
+        windowTimeZone?: components['parameters']['queryWindowTimeZone']
+        subject?: components['parameters']['querySubject']
+        groupBy?: components['parameters']['queryGroupBy']
       }
       path: {
         meterIdOrSlug: components['parameters']['meterIdOrSlug']
@@ -436,9 +414,6 @@ export interface operations {
   /** @description List meter subjects */
   listMeterSubjects: {
     parameters: {
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
       path: {
         meterIdOrSlug: components['parameters']['meterIdOrSlug']
       }
@@ -454,18 +429,37 @@ export interface operations {
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
-  /** @description Create namespace */
-  createNamespace: {
-    requestBody: {
+  createPortalToken: {
+    requestBody?: {
       content: {
-        'application/json': components['schemas']['Namespace']
+        'application/json': components['schemas']['PortalToken']
       }
     }
     responses: {
-      /** @description Created */
-      201: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': components['schemas']['PortalToken']
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  invalidatePortalTokens: {
+    requestBody?: {
+      content: {
+        'application/json': {
+          subject?: string
+        }
+      }
+    }
+    responses: {
+      /** @description No Content */
+      204: {
         content: never
       }
+      400: components['responses']['BadRequestProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }

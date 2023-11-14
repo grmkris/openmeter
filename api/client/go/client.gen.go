@@ -38,23 +38,40 @@ type MeterAggregation = models.MeterAggregation
 // MeterQueryRow defines model for MeterQueryRow.
 type MeterQueryRow = models.MeterQueryRow
 
-// Namespace defines model for Namespace.
-type Namespace struct {
-	// Namespace A namespace
-	Namespace string `json:"namespace"`
+// PortalToken defines model for PortalToken.
+type PortalToken struct {
+	AllowedMeterSlugs *[]string  `json:"allowedMeterSlugs,omitempty"`
+	ExpiresAt         *time.Time `json:"expiresAt,omitempty"`
+	Subject           string     `json:"subject"`
+	Token             *string    `json:"token,omitempty"`
 }
 
 // Problem A Problem Details object (RFC 7807)
 type Problem = models.StatusProblem
 
-// WindowSize defines model for WindowSize.
+// WindowSize Aggregation window size.
 type WindowSize = models.WindowSize
 
 // MeterIdOrSlug defines model for meterIdOrSlug.
 type MeterIdOrSlug = IdOrSlug
 
-// NamespaceInput defines model for namespaceParam.
-type NamespaceInput = string
+// QueryFrom defines model for queryFrom.
+type QueryFrom = time.Time
+
+// QueryGroupBy defines model for queryGroupBy.
+type QueryGroupBy = []string
+
+// QuerySubject defines model for querySubject.
+type QuerySubject = []string
+
+// QueryTo defines model for queryTo.
+type QueryTo = time.Time
+
+// QueryWindowSize Aggregation window size.
+type QueryWindowSize = WindowSize
+
+// QueryWindowTimeZone defines model for queryWindowTimeZone.
+type QueryWindowTimeZone = string
 
 // BadRequestProblemResponse A Problem Details object (RFC 7807)
 type BadRequestProblemResponse = Problem
@@ -72,76 +89,36 @@ type UnexpectedProblemResponse = Problem
 type ListEventsParams struct {
 	// Limit Number of events to return.
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
-
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
 }
 
 // IngestEventsApplicationCloudeventsBatchPlusJSONBody defines parameters for IngestEvents.
 type IngestEventsApplicationCloudeventsBatchPlusJSONBody = []Event
 
-// IngestEventsParams defines parameters for IngestEvents.
-type IngestEventsParams struct {
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
-}
-
-// ListMetersParams defines parameters for ListMeters.
-type ListMetersParams struct {
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
-}
-
-// CreateMeterParams defines parameters for CreateMeter.
-type CreateMeterParams struct {
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
-}
-
-// DeleteMeterParams defines parameters for DeleteMeter.
-type DeleteMeterParams struct {
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
-}
-
-// GetMeterParams defines parameters for GetMeter.
-type GetMeterParams struct {
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
-}
-
 // QueryMeterParams defines parameters for QueryMeter.
 type QueryMeterParams struct {
-	// From Start date-time in RFC 3339 format in UTC timezone.
-	// Must be aligned with the window size.
+	// From Start date-time in RFC 3339 format.
 	// Inclusive.
-	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
+	From *QueryFrom `form:"from,omitempty" json:"from,omitempty"`
 
-	// To End date-time in RFC 3339 format in UTC timezone.
-	// Must be aligned with the window size.
+	// To End date-time in RFC 3339 format.
 	// Inclusive.
-	To *time.Time `form:"to,omitempty" json:"to,omitempty"`
+	To *QueryTo `form:"to,omitempty" json:"to,omitempty"`
 
 	// WindowSize If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
-	WindowSize *WindowSize `form:"windowSize,omitempty" json:"windowSize,omitempty"`
+	WindowSize *QueryWindowSize `form:"windowSize,omitempty" json:"windowSize,omitempty"`
 
-	// Aggregation If not specified, OpenMeter will use the default aggregation type.
-	// As OpenMeter stores aggregates defined by meter config, passing a different aggregate can lead to inaccurate results.
-	// For example getting the MIN of SUMs.
-	Aggregation *MeterAggregation `form:"aggregation,omitempty" json:"aggregation,omitempty"`
-	Subject     *[]string         `form:"subject,omitempty" json:"subject,omitempty"`
+	// WindowTimeZone The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+	// If not specified, the UTC timezone will be used.
+	WindowTimeZone *QueryWindowTimeZone `form:"windowTimeZone,omitempty" json:"windowTimeZone,omitempty"`
+	Subject        *QuerySubject        `form:"subject,omitempty" json:"subject,omitempty"`
 
 	// GroupBy If not specified a single aggregate will be returned for each subject and time window.
-	GroupBy *[]string `form:"groupBy,omitempty" json:"groupBy,omitempty"`
-
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
+	GroupBy *QueryGroupBy `form:"groupBy,omitempty" json:"groupBy,omitempty"`
 }
 
-// ListMeterSubjectsParams defines parameters for ListMeterSubjects.
-type ListMeterSubjectsParams struct {
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
+// InvalidatePortalTokensJSONBody defines parameters for InvalidatePortalTokens.
+type InvalidatePortalTokensJSONBody struct {
+	Subject *string `json:"subject,omitempty"`
 }
 
 // IngestEventsApplicationCloudeventsPlusJSONRequestBody defines body for IngestEvents for application/cloudevents+json ContentType.
@@ -153,8 +130,11 @@ type IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody = IngestEventsAp
 // CreateMeterJSONRequestBody defines body for CreateMeter for application/json ContentType.
 type CreateMeterJSONRequestBody = Meter
 
-// CreateNamespaceJSONRequestBody defines body for CreateNamespace for application/json ContentType.
-type CreateNamespaceJSONRequestBody = Namespace
+// CreatePortalTokenJSONRequestBody defines body for CreatePortalToken for application/json ContentType.
+type CreatePortalTokenJSONRequestBody = PortalToken
+
+// InvalidatePortalTokensJSONRequestBody defines body for InvalidatePortalTokens for application/json ContentType.
+type InvalidatePortalTokensJSONRequestBody InvalidatePortalTokensJSONBody
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -233,36 +213,41 @@ type ClientInterface interface {
 	ListEvents(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// IngestEventsWithBody request with any body
-	IngestEventsWithBody(ctx context.Context, params *IngestEventsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	IngestEventsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	IngestEventsWithApplicationCloudeventsPlusJSONBody(ctx context.Context, params *IngestEventsParams, body IngestEventsApplicationCloudeventsPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	IngestEventsWithApplicationCloudeventsPlusJSONBody(ctx context.Context, body IngestEventsApplicationCloudeventsPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	IngestEventsWithApplicationCloudeventsBatchPlusJSONBody(ctx context.Context, params *IngestEventsParams, body IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	IngestEventsWithApplicationCloudeventsBatchPlusJSONBody(ctx context.Context, body IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListMeters request
-	ListMeters(ctx context.Context, params *ListMetersParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListMeters(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateMeterWithBody request with any body
-	CreateMeterWithBody(ctx context.Context, params *CreateMeterParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CreateMeterWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	CreateMeter(ctx context.Context, params *CreateMeterParams, body CreateMeterJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CreateMeter(ctx context.Context, body CreateMeterJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteMeter request
-	DeleteMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *DeleteMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetMeter request
-	GetMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// QueryMeter request
 	QueryMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *QueryMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListMeterSubjects request
-	ListMeterSubjects(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *ListMeterSubjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListMeterSubjects(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// CreateNamespaceWithBody request with any body
-	CreateNamespaceWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// CreatePortalTokenWithBody request with any body
+	CreatePortalTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	CreateNamespace(ctx context.Context, body CreateNamespaceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CreatePortalToken(ctx context.Context, body CreatePortalTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// InvalidatePortalTokensWithBody request with any body
+	InvalidatePortalTokensWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	InvalidatePortalTokens(ctx context.Context, body InvalidatePortalTokensJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) ListEvents(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -277,8 +262,8 @@ func (c *Client) ListEvents(ctx context.Context, params *ListEventsParams, reqEd
 	return c.Client.Do(req)
 }
 
-func (c *Client) IngestEventsWithBody(ctx context.Context, params *IngestEventsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewIngestEventsRequestWithBody(c.Server, params, contentType, body)
+func (c *Client) IngestEventsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewIngestEventsRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -289,8 +274,8 @@ func (c *Client) IngestEventsWithBody(ctx context.Context, params *IngestEventsP
 	return c.Client.Do(req)
 }
 
-func (c *Client) IngestEventsWithApplicationCloudeventsPlusJSONBody(ctx context.Context, params *IngestEventsParams, body IngestEventsApplicationCloudeventsPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewIngestEventsRequestWithApplicationCloudeventsPlusJSONBody(c.Server, params, body)
+func (c *Client) IngestEventsWithApplicationCloudeventsPlusJSONBody(ctx context.Context, body IngestEventsApplicationCloudeventsPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewIngestEventsRequestWithApplicationCloudeventsPlusJSONBody(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -301,8 +286,8 @@ func (c *Client) IngestEventsWithApplicationCloudeventsPlusJSONBody(ctx context.
 	return c.Client.Do(req)
 }
 
-func (c *Client) IngestEventsWithApplicationCloudeventsBatchPlusJSONBody(ctx context.Context, params *IngestEventsParams, body IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewIngestEventsRequestWithApplicationCloudeventsBatchPlusJSONBody(c.Server, params, body)
+func (c *Client) IngestEventsWithApplicationCloudeventsBatchPlusJSONBody(ctx context.Context, body IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewIngestEventsRequestWithApplicationCloudeventsBatchPlusJSONBody(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -313,8 +298,8 @@ func (c *Client) IngestEventsWithApplicationCloudeventsBatchPlusJSONBody(ctx con
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListMeters(ctx context.Context, params *ListMetersParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListMetersRequest(c.Server, params)
+func (c *Client) ListMeters(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListMetersRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -325,8 +310,8 @@ func (c *Client) ListMeters(ctx context.Context, params *ListMetersParams, reqEd
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateMeterWithBody(ctx context.Context, params *CreateMeterParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateMeterRequestWithBody(c.Server, params, contentType, body)
+func (c *Client) CreateMeterWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateMeterRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -337,8 +322,8 @@ func (c *Client) CreateMeterWithBody(ctx context.Context, params *CreateMeterPar
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateMeter(ctx context.Context, params *CreateMeterParams, body CreateMeterJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateMeterRequest(c.Server, params, body)
+func (c *Client) CreateMeter(ctx context.Context, body CreateMeterJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateMeterRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -349,8 +334,8 @@ func (c *Client) CreateMeter(ctx context.Context, params *CreateMeterParams, bod
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *DeleteMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteMeterRequest(c.Server, meterIdOrSlug, params)
+func (c *Client) DeleteMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteMeterRequest(c.Server, meterIdOrSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -361,8 +346,8 @@ func (c *Client) DeleteMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, p
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetMeterRequest(c.Server, meterIdOrSlug, params)
+func (c *Client) GetMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetMeterRequest(c.Server, meterIdOrSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -385,8 +370,8 @@ func (c *Client) QueryMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, pa
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListMeterSubjects(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *ListMeterSubjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListMeterSubjectsRequest(c.Server, meterIdOrSlug, params)
+func (c *Client) ListMeterSubjects(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListMeterSubjectsRequest(c.Server, meterIdOrSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -397,8 +382,8 @@ func (c *Client) ListMeterSubjects(ctx context.Context, meterIdOrSlug MeterIdOrS
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateNamespaceWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateNamespaceRequestWithBody(c.Server, contentType, body)
+func (c *Client) CreatePortalTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreatePortalTokenRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -409,8 +394,32 @@ func (c *Client) CreateNamespaceWithBody(ctx context.Context, contentType string
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateNamespace(ctx context.Context, body CreateNamespaceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateNamespaceRequest(c.Server, body)
+func (c *Client) CreatePortalToken(ctx context.Context, body CreatePortalTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreatePortalTokenRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) InvalidatePortalTokensWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewInvalidatePortalTokensRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) InvalidatePortalTokens(ctx context.Context, body InvalidatePortalTokensJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewInvalidatePortalTokensRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -467,48 +476,33 @@ func NewListEventsRequest(server string, params *ListEventsParams) (*http.Reques
 		return nil, err
 	}
 
-	if params != nil {
-
-		if params.NamespaceInput != nil {
-			var headerParam0 string
-
-			headerParam0, err = runtime.StyleParamWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, *params.NamespaceInput)
-			if err != nil {
-				return nil, err
-			}
-
-			req.Header.Set("OM-Namespace", headerParam0)
-		}
-
-	}
-
 	return req, nil
 }
 
 // NewIngestEventsRequestWithApplicationCloudeventsPlusJSONBody calls the generic IngestEvents builder with application/cloudevents+json body
-func NewIngestEventsRequestWithApplicationCloudeventsPlusJSONBody(server string, params *IngestEventsParams, body IngestEventsApplicationCloudeventsPlusJSONRequestBody) (*http.Request, error) {
+func NewIngestEventsRequestWithApplicationCloudeventsPlusJSONBody(server string, body IngestEventsApplicationCloudeventsPlusJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewIngestEventsRequestWithBody(server, params, "application/cloudevents+json", bodyReader)
+	return NewIngestEventsRequestWithBody(server, "application/cloudevents+json", bodyReader)
 }
 
 // NewIngestEventsRequestWithApplicationCloudeventsBatchPlusJSONBody calls the generic IngestEvents builder with application/cloudevents-batch+json body
-func NewIngestEventsRequestWithApplicationCloudeventsBatchPlusJSONBody(server string, params *IngestEventsParams, body IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody) (*http.Request, error) {
+func NewIngestEventsRequestWithApplicationCloudeventsBatchPlusJSONBody(server string, body IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewIngestEventsRequestWithBody(server, params, "application/cloudevents-batch+json", bodyReader)
+	return NewIngestEventsRequestWithBody(server, "application/cloudevents-batch+json", bodyReader)
 }
 
 // NewIngestEventsRequestWithBody generates requests for IngestEvents with any type of body
-func NewIngestEventsRequestWithBody(server string, params *IngestEventsParams, contentType string, body io.Reader) (*http.Request, error) {
+func NewIngestEventsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -533,26 +527,11 @@ func NewIngestEventsRequestWithBody(server string, params *IngestEventsParams, c
 
 	req.Header.Add("Content-Type", contentType)
 
-	if params != nil {
-
-		if params.NamespaceInput != nil {
-			var headerParam0 string
-
-			headerParam0, err = runtime.StyleParamWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, *params.NamespaceInput)
-			if err != nil {
-				return nil, err
-			}
-
-			req.Header.Set("OM-Namespace", headerParam0)
-		}
-
-	}
-
 	return req, nil
 }
 
 // NewListMetersRequest generates requests for ListMeters
-func NewListMetersRequest(server string, params *ListMetersParams) (*http.Request, error) {
+func NewListMetersRequest(server string) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -575,37 +554,22 @@ func NewListMetersRequest(server string, params *ListMetersParams) (*http.Reques
 		return nil, err
 	}
 
-	if params != nil {
-
-		if params.NamespaceInput != nil {
-			var headerParam0 string
-
-			headerParam0, err = runtime.StyleParamWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, *params.NamespaceInput)
-			if err != nil {
-				return nil, err
-			}
-
-			req.Header.Set("OM-Namespace", headerParam0)
-		}
-
-	}
-
 	return req, nil
 }
 
 // NewCreateMeterRequest calls the generic CreateMeter builder with application/json body
-func NewCreateMeterRequest(server string, params *CreateMeterParams, body CreateMeterJSONRequestBody) (*http.Request, error) {
+func NewCreateMeterRequest(server string, body CreateMeterJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewCreateMeterRequestWithBody(server, params, "application/json", bodyReader)
+	return NewCreateMeterRequestWithBody(server, "application/json", bodyReader)
 }
 
 // NewCreateMeterRequestWithBody generates requests for CreateMeter with any type of body
-func NewCreateMeterRequestWithBody(server string, params *CreateMeterParams, contentType string, body io.Reader) (*http.Request, error) {
+func NewCreateMeterRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -630,26 +594,11 @@ func NewCreateMeterRequestWithBody(server string, params *CreateMeterParams, con
 
 	req.Header.Add("Content-Type", contentType)
 
-	if params != nil {
-
-		if params.NamespaceInput != nil {
-			var headerParam0 string
-
-			headerParam0, err = runtime.StyleParamWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, *params.NamespaceInput)
-			if err != nil {
-				return nil, err
-			}
-
-			req.Header.Set("OM-Namespace", headerParam0)
-		}
-
-	}
-
 	return req, nil
 }
 
 // NewDeleteMeterRequest generates requests for DeleteMeter
-func NewDeleteMeterRequest(server string, meterIdOrSlug MeterIdOrSlug, params *DeleteMeterParams) (*http.Request, error) {
+func NewDeleteMeterRequest(server string, meterIdOrSlug MeterIdOrSlug) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -679,26 +628,11 @@ func NewDeleteMeterRequest(server string, meterIdOrSlug MeterIdOrSlug, params *D
 		return nil, err
 	}
 
-	if params != nil {
-
-		if params.NamespaceInput != nil {
-			var headerParam0 string
-
-			headerParam0, err = runtime.StyleParamWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, *params.NamespaceInput)
-			if err != nil {
-				return nil, err
-			}
-
-			req.Header.Set("OM-Namespace", headerParam0)
-		}
-
-	}
-
 	return req, nil
 }
 
 // NewGetMeterRequest generates requests for GetMeter
-func NewGetMeterRequest(server string, meterIdOrSlug MeterIdOrSlug, params *GetMeterParams) (*http.Request, error) {
+func NewGetMeterRequest(server string, meterIdOrSlug MeterIdOrSlug) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -726,21 +660,6 @@ func NewGetMeterRequest(server string, meterIdOrSlug MeterIdOrSlug, params *GetM
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
-	}
-
-	if params != nil {
-
-		if params.NamespaceInput != nil {
-			var headerParam0 string
-
-			headerParam0, err = runtime.StyleParamWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, *params.NamespaceInput)
-			if err != nil {
-				return nil, err
-			}
-
-			req.Header.Set("OM-Namespace", headerParam0)
-		}
-
 	}
 
 	return req, nil
@@ -823,9 +742,9 @@ func NewQueryMeterRequest(server string, meterIdOrSlug MeterIdOrSlug, params *Qu
 
 		}
 
-		if params.Aggregation != nil {
+		if params.WindowTimeZone != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "aggregation", runtime.ParamLocationQuery, *params.Aggregation); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "windowTimeZone", runtime.ParamLocationQuery, *params.WindowTimeZone); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -879,26 +798,11 @@ func NewQueryMeterRequest(server string, meterIdOrSlug MeterIdOrSlug, params *Qu
 		return nil, err
 	}
 
-	if params != nil {
-
-		if params.NamespaceInput != nil {
-			var headerParam0 string
-
-			headerParam0, err = runtime.StyleParamWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, *params.NamespaceInput)
-			if err != nil {
-				return nil, err
-			}
-
-			req.Header.Set("OM-Namespace", headerParam0)
-		}
-
-	}
-
 	return req, nil
 }
 
 // NewListMeterSubjectsRequest generates requests for ListMeterSubjects
-func NewListMeterSubjectsRequest(server string, meterIdOrSlug MeterIdOrSlug, params *ListMeterSubjectsParams) (*http.Request, error) {
+func NewListMeterSubjectsRequest(server string, meterIdOrSlug MeterIdOrSlug) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -928,37 +832,22 @@ func NewListMeterSubjectsRequest(server string, meterIdOrSlug MeterIdOrSlug, par
 		return nil, err
 	}
 
-	if params != nil {
-
-		if params.NamespaceInput != nil {
-			var headerParam0 string
-
-			headerParam0, err = runtime.StyleParamWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, *params.NamespaceInput)
-			if err != nil {
-				return nil, err
-			}
-
-			req.Header.Set("OM-Namespace", headerParam0)
-		}
-
-	}
-
 	return req, nil
 }
 
-// NewCreateNamespaceRequest calls the generic CreateNamespace builder with application/json body
-func NewCreateNamespaceRequest(server string, body CreateNamespaceJSONRequestBody) (*http.Request, error) {
+// NewCreatePortalTokenRequest calls the generic CreatePortalToken builder with application/json body
+func NewCreatePortalTokenRequest(server string, body CreatePortalTokenJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewCreateNamespaceRequestWithBody(server, "application/json", bodyReader)
+	return NewCreatePortalTokenRequestWithBody(server, "application/json", bodyReader)
 }
 
-// NewCreateNamespaceRequestWithBody generates requests for CreateNamespace with any type of body
-func NewCreateNamespaceRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewCreatePortalTokenRequestWithBody generates requests for CreatePortalToken with any type of body
+func NewCreatePortalTokenRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -966,7 +855,47 @@ func NewCreateNamespaceRequestWithBody(server string, contentType string, body i
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/v1/namespaces")
+	operationPath := fmt.Sprintf("/api/v1/portal/tokens")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewInvalidatePortalTokensRequest calls the generic InvalidatePortalTokens builder with application/json body
+func NewInvalidatePortalTokensRequest(server string, body InvalidatePortalTokensJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewInvalidatePortalTokensRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewInvalidatePortalTokensRequestWithBody generates requests for InvalidatePortalTokens with any type of body
+func NewInvalidatePortalTokensRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/portal/tokens/invalidate")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1033,36 +962,41 @@ type ClientWithResponsesInterface interface {
 	ListEventsWithResponse(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*ListEventsResponse, error)
 
 	// IngestEventsWithBodyWithResponse request with any body
-	IngestEventsWithBodyWithResponse(ctx context.Context, params *IngestEventsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*IngestEventsResponse, error)
+	IngestEventsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*IngestEventsResponse, error)
 
-	IngestEventsWithApplicationCloudeventsPlusJSONBodyWithResponse(ctx context.Context, params *IngestEventsParams, body IngestEventsApplicationCloudeventsPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*IngestEventsResponse, error)
+	IngestEventsWithApplicationCloudeventsPlusJSONBodyWithResponse(ctx context.Context, body IngestEventsApplicationCloudeventsPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*IngestEventsResponse, error)
 
-	IngestEventsWithApplicationCloudeventsBatchPlusJSONBodyWithResponse(ctx context.Context, params *IngestEventsParams, body IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*IngestEventsResponse, error)
+	IngestEventsWithApplicationCloudeventsBatchPlusJSONBodyWithResponse(ctx context.Context, body IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*IngestEventsResponse, error)
 
 	// ListMetersWithResponse request
-	ListMetersWithResponse(ctx context.Context, params *ListMetersParams, reqEditors ...RequestEditorFn) (*ListMetersResponse, error)
+	ListMetersWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListMetersResponse, error)
 
 	// CreateMeterWithBodyWithResponse request with any body
-	CreateMeterWithBodyWithResponse(ctx context.Context, params *CreateMeterParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateMeterResponse, error)
+	CreateMeterWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateMeterResponse, error)
 
-	CreateMeterWithResponse(ctx context.Context, params *CreateMeterParams, body CreateMeterJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateMeterResponse, error)
+	CreateMeterWithResponse(ctx context.Context, body CreateMeterJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateMeterResponse, error)
 
 	// DeleteMeterWithResponse request
-	DeleteMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *DeleteMeterParams, reqEditors ...RequestEditorFn) (*DeleteMeterResponse, error)
+	DeleteMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*DeleteMeterResponse, error)
 
 	// GetMeterWithResponse request
-	GetMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterParams, reqEditors ...RequestEditorFn) (*GetMeterResponse, error)
+	GetMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*GetMeterResponse, error)
 
 	// QueryMeterWithResponse request
 	QueryMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *QueryMeterParams, reqEditors ...RequestEditorFn) (*QueryMeterResponse, error)
 
 	// ListMeterSubjectsWithResponse request
-	ListMeterSubjectsWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *ListMeterSubjectsParams, reqEditors ...RequestEditorFn) (*ListMeterSubjectsResponse, error)
+	ListMeterSubjectsWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*ListMeterSubjectsResponse, error)
 
-	// CreateNamespaceWithBodyWithResponse request with any body
-	CreateNamespaceWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateNamespaceResponse, error)
+	// CreatePortalTokenWithBodyWithResponse request with any body
+	CreatePortalTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreatePortalTokenResponse, error)
 
-	CreateNamespaceWithResponse(ctx context.Context, body CreateNamespaceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateNamespaceResponse, error)
+	CreatePortalTokenWithResponse(ctx context.Context, body CreatePortalTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*CreatePortalTokenResponse, error)
+
+	// InvalidatePortalTokensWithBodyWithResponse request with any body
+	InvalidatePortalTokensWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*InvalidatePortalTokensResponse, error)
+
+	InvalidatePortalTokensWithResponse(ctx context.Context, body InvalidatePortalTokensJSONRequestBody, reqEditors ...RequestEditorFn) (*InvalidatePortalTokensResponse, error)
 }
 
 type ListEventsResponse struct {
@@ -1212,10 +1146,12 @@ type QueryMeterResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *struct {
-		Data       []MeterQueryRow `json:"data"`
-		From       *time.Time      `json:"from,omitempty"`
-		To         *time.Time      `json:"to,omitempty"`
-		WindowSize *WindowSize     `json:"windowSize,omitempty"`
+		Data []MeterQueryRow `json:"data"`
+		From *time.Time      `json:"from,omitempty"`
+		To   *time.Time      `json:"to,omitempty"`
+
+		// WindowSize Aggregation window size.
+		WindowSize *WindowSize `json:"windowSize,omitempty"`
 	}
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
@@ -1261,14 +1197,16 @@ func (r ListMeterSubjectsResponse) StatusCode() int {
 	return 0
 }
 
-type CreateNamespaceResponse struct {
+type CreatePortalTokenResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
+	JSON200                       *PortalToken
+	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
 // Status returns HTTPResponse.Status
-func (r CreateNamespaceResponse) Status() string {
+func (r CreatePortalTokenResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1276,7 +1214,30 @@ func (r CreateNamespaceResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r CreateNamespaceResponse) StatusCode() int {
+func (r CreatePortalTokenResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type InvalidatePortalTokensResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r InvalidatePortalTokensResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r InvalidatePortalTokensResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1293,24 +1254,24 @@ func (c *ClientWithResponses) ListEventsWithResponse(ctx context.Context, params
 }
 
 // IngestEventsWithBodyWithResponse request with arbitrary body returning *IngestEventsResponse
-func (c *ClientWithResponses) IngestEventsWithBodyWithResponse(ctx context.Context, params *IngestEventsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*IngestEventsResponse, error) {
-	rsp, err := c.IngestEventsWithBody(ctx, params, contentType, body, reqEditors...)
+func (c *ClientWithResponses) IngestEventsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*IngestEventsResponse, error) {
+	rsp, err := c.IngestEventsWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseIngestEventsResponse(rsp)
 }
 
-func (c *ClientWithResponses) IngestEventsWithApplicationCloudeventsPlusJSONBodyWithResponse(ctx context.Context, params *IngestEventsParams, body IngestEventsApplicationCloudeventsPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*IngestEventsResponse, error) {
-	rsp, err := c.IngestEventsWithApplicationCloudeventsPlusJSONBody(ctx, params, body, reqEditors...)
+func (c *ClientWithResponses) IngestEventsWithApplicationCloudeventsPlusJSONBodyWithResponse(ctx context.Context, body IngestEventsApplicationCloudeventsPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*IngestEventsResponse, error) {
+	rsp, err := c.IngestEventsWithApplicationCloudeventsPlusJSONBody(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseIngestEventsResponse(rsp)
 }
 
-func (c *ClientWithResponses) IngestEventsWithApplicationCloudeventsBatchPlusJSONBodyWithResponse(ctx context.Context, params *IngestEventsParams, body IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*IngestEventsResponse, error) {
-	rsp, err := c.IngestEventsWithApplicationCloudeventsBatchPlusJSONBody(ctx, params, body, reqEditors...)
+func (c *ClientWithResponses) IngestEventsWithApplicationCloudeventsBatchPlusJSONBodyWithResponse(ctx context.Context, body IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*IngestEventsResponse, error) {
+	rsp, err := c.IngestEventsWithApplicationCloudeventsBatchPlusJSONBody(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -1318,8 +1279,8 @@ func (c *ClientWithResponses) IngestEventsWithApplicationCloudeventsBatchPlusJSO
 }
 
 // ListMetersWithResponse request returning *ListMetersResponse
-func (c *ClientWithResponses) ListMetersWithResponse(ctx context.Context, params *ListMetersParams, reqEditors ...RequestEditorFn) (*ListMetersResponse, error) {
-	rsp, err := c.ListMeters(ctx, params, reqEditors...)
+func (c *ClientWithResponses) ListMetersWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListMetersResponse, error) {
+	rsp, err := c.ListMeters(ctx, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -1327,16 +1288,16 @@ func (c *ClientWithResponses) ListMetersWithResponse(ctx context.Context, params
 }
 
 // CreateMeterWithBodyWithResponse request with arbitrary body returning *CreateMeterResponse
-func (c *ClientWithResponses) CreateMeterWithBodyWithResponse(ctx context.Context, params *CreateMeterParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateMeterResponse, error) {
-	rsp, err := c.CreateMeterWithBody(ctx, params, contentType, body, reqEditors...)
+func (c *ClientWithResponses) CreateMeterWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateMeterResponse, error) {
+	rsp, err := c.CreateMeterWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseCreateMeterResponse(rsp)
 }
 
-func (c *ClientWithResponses) CreateMeterWithResponse(ctx context.Context, params *CreateMeterParams, body CreateMeterJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateMeterResponse, error) {
-	rsp, err := c.CreateMeter(ctx, params, body, reqEditors...)
+func (c *ClientWithResponses) CreateMeterWithResponse(ctx context.Context, body CreateMeterJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateMeterResponse, error) {
+	rsp, err := c.CreateMeter(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -1344,8 +1305,8 @@ func (c *ClientWithResponses) CreateMeterWithResponse(ctx context.Context, param
 }
 
 // DeleteMeterWithResponse request returning *DeleteMeterResponse
-func (c *ClientWithResponses) DeleteMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *DeleteMeterParams, reqEditors ...RequestEditorFn) (*DeleteMeterResponse, error) {
-	rsp, err := c.DeleteMeter(ctx, meterIdOrSlug, params, reqEditors...)
+func (c *ClientWithResponses) DeleteMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*DeleteMeterResponse, error) {
+	rsp, err := c.DeleteMeter(ctx, meterIdOrSlug, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -1353,8 +1314,8 @@ func (c *ClientWithResponses) DeleteMeterWithResponse(ctx context.Context, meter
 }
 
 // GetMeterWithResponse request returning *GetMeterResponse
-func (c *ClientWithResponses) GetMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterParams, reqEditors ...RequestEditorFn) (*GetMeterResponse, error) {
-	rsp, err := c.GetMeter(ctx, meterIdOrSlug, params, reqEditors...)
+func (c *ClientWithResponses) GetMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*GetMeterResponse, error) {
+	rsp, err := c.GetMeter(ctx, meterIdOrSlug, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -1371,29 +1332,46 @@ func (c *ClientWithResponses) QueryMeterWithResponse(ctx context.Context, meterI
 }
 
 // ListMeterSubjectsWithResponse request returning *ListMeterSubjectsResponse
-func (c *ClientWithResponses) ListMeterSubjectsWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *ListMeterSubjectsParams, reqEditors ...RequestEditorFn) (*ListMeterSubjectsResponse, error) {
-	rsp, err := c.ListMeterSubjects(ctx, meterIdOrSlug, params, reqEditors...)
+func (c *ClientWithResponses) ListMeterSubjectsWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*ListMeterSubjectsResponse, error) {
+	rsp, err := c.ListMeterSubjects(ctx, meterIdOrSlug, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseListMeterSubjectsResponse(rsp)
 }
 
-// CreateNamespaceWithBodyWithResponse request with arbitrary body returning *CreateNamespaceResponse
-func (c *ClientWithResponses) CreateNamespaceWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateNamespaceResponse, error) {
-	rsp, err := c.CreateNamespaceWithBody(ctx, contentType, body, reqEditors...)
+// CreatePortalTokenWithBodyWithResponse request with arbitrary body returning *CreatePortalTokenResponse
+func (c *ClientWithResponses) CreatePortalTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreatePortalTokenResponse, error) {
+	rsp, err := c.CreatePortalTokenWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseCreateNamespaceResponse(rsp)
+	return ParseCreatePortalTokenResponse(rsp)
 }
 
-func (c *ClientWithResponses) CreateNamespaceWithResponse(ctx context.Context, body CreateNamespaceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateNamespaceResponse, error) {
-	rsp, err := c.CreateNamespace(ctx, body, reqEditors...)
+func (c *ClientWithResponses) CreatePortalTokenWithResponse(ctx context.Context, body CreatePortalTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*CreatePortalTokenResponse, error) {
+	rsp, err := c.CreatePortalToken(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseCreateNamespaceResponse(rsp)
+	return ParseCreatePortalTokenResponse(rsp)
+}
+
+// InvalidatePortalTokensWithBodyWithResponse request with arbitrary body returning *InvalidatePortalTokensResponse
+func (c *ClientWithResponses) InvalidatePortalTokensWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*InvalidatePortalTokensResponse, error) {
+	rsp, err := c.InvalidatePortalTokensWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseInvalidatePortalTokensResponse(rsp)
+}
+
+func (c *ClientWithResponses) InvalidatePortalTokensWithResponse(ctx context.Context, body InvalidatePortalTokensJSONRequestBody, reqEditors ...RequestEditorFn) (*InvalidatePortalTokensResponse, error) {
+	rsp, err := c.InvalidatePortalTokens(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseInvalidatePortalTokensResponse(rsp)
 }
 
 // ParseListEventsResponse parses an HTTP response from a ListEventsWithResponse call
@@ -1645,10 +1623,12 @@ func ParseQueryMeterResponse(rsp *http.Response) (*QueryMeterResponse, error) {
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest struct {
-			Data       []MeterQueryRow `json:"data"`
-			From       *time.Time      `json:"from,omitempty"`
-			To         *time.Time      `json:"to,omitempty"`
-			WindowSize *WindowSize     `json:"windowSize,omitempty"`
+			Data []MeterQueryRow `json:"data"`
+			From *time.Time      `json:"from,omitempty"`
+			To   *time.Time      `json:"to,omitempty"`
+
+			// WindowSize Aggregation window size.
+			WindowSize *WindowSize `json:"windowSize,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -1717,20 +1697,67 @@ func ParseListMeterSubjectsResponse(rsp *http.Response) (*ListMeterSubjectsRespo
 	return response, nil
 }
 
-// ParseCreateNamespaceResponse parses an HTTP response from a CreateNamespaceWithResponse call
-func ParseCreateNamespaceResponse(rsp *http.Response) (*CreateNamespaceResponse, error) {
+// ParseCreatePortalTokenResponse parses an HTTP response from a CreatePortalTokenWithResponse call
+func ParseCreatePortalTokenResponse(rsp *http.Response) (*CreatePortalTokenResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &CreateNamespaceResponse{
+	response := &CreatePortalTokenResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PortalToken
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseInvalidatePortalTokensResponse parses an HTTP response from a InvalidatePortalTokensWithResponse call
+func ParseInvalidatePortalTokensResponse(rsp *http.Response) (*InvalidatePortalTokensResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &InvalidatePortalTokensResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -1746,54 +1773,56 @@ func ParseCreateNamespaceResponse(rsp *http.Response) (*CreateNamespaceResponse,
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
