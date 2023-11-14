@@ -36,10 +36,18 @@ type MeterAggregation = models.MeterAggregation
 // MeterQueryRow defines model for MeterQueryRow.
 type MeterQueryRow = models.MeterQueryRow
 
+// PortalToken defines model for PortalToken.
+type PortalToken struct {
+	AllowedMeterSlugs *[]string  `json:"allowedMeterSlugs,omitempty"`
+	ExpiresAt         *time.Time `json:"expiresAt,omitempty"`
+	Subject           string     `json:"subject"`
+	Token             *string    `json:"token,omitempty"`
+}
+
 // Problem A Problem Details object (RFC 7807)
 type Problem = models.StatusProblem
 
-// WindowSize defines model for WindowSize.
+// WindowSize Aggregation window size.
 type WindowSize = models.WindowSize
 
 // MeterIdOrSlug defines model for meterIdOrSlug.
@@ -57,8 +65,11 @@ type QuerySubject = []string
 // QueryTo defines model for queryTo.
 type QueryTo = time.Time
 
-// QueryWindowSize defines model for queryWindowSize.
+// QueryWindowSize Aggregation window size.
 type QueryWindowSize = WindowSize
+
+// QueryWindowTimeZone defines model for queryWindowTimeZone.
+type QueryWindowTimeZone = string
 
 // BadRequestProblemResponse A Problem Details object (RFC 7807)
 type BadRequestProblemResponse = Problem
@@ -83,22 +94,29 @@ type IngestEventsApplicationCloudeventsBatchPlusJSONBody = []Event
 
 // QueryMeterParams defines parameters for QueryMeter.
 type QueryMeterParams struct {
-	// From Start date-time in RFC 3339 format in UTC timezone.
-	// Must be aligned with the window size.
+	// From Start date-time in RFC 3339 format.
 	// Inclusive.
 	From *QueryFrom `form:"from,omitempty" json:"from,omitempty"`
 
-	// To End date-time in RFC 3339 format in UTC timezone.
-	// Must be aligned with the window size.
+	// To End date-time in RFC 3339 format.
 	// Inclusive.
 	To *QueryTo `form:"to,omitempty" json:"to,omitempty"`
 
 	// WindowSize If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
 	WindowSize *QueryWindowSize `form:"windowSize,omitempty" json:"windowSize,omitempty"`
-	Subject    *QuerySubject    `form:"subject,omitempty" json:"subject,omitempty"`
+
+	// WindowTimeZone The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+	// If not specified, the UTC timezone will be used.
+	WindowTimeZone *QueryWindowTimeZone `form:"windowTimeZone,omitempty" json:"windowTimeZone,omitempty"`
+	Subject        *QuerySubject        `form:"subject,omitempty" json:"subject,omitempty"`
 
 	// GroupBy If not specified a single aggregate will be returned for each subject and time window.
 	GroupBy *QueryGroupBy `form:"groupBy,omitempty" json:"groupBy,omitempty"`
+}
+
+// InvalidatePortalTokensJSONBody defines parameters for InvalidatePortalTokens.
+type InvalidatePortalTokensJSONBody struct {
+	Subject *string `json:"subject,omitempty"`
 }
 
 // IngestEventsApplicationCloudeventsPlusJSONRequestBody defines body for IngestEvents for application/cloudevents+json ContentType.
@@ -109,6 +127,12 @@ type IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody = IngestEventsAp
 
 // CreateMeterJSONRequestBody defines body for CreateMeter for application/json ContentType.
 type CreateMeterJSONRequestBody = Meter
+
+// CreatePortalTokenJSONRequestBody defines body for CreatePortalToken for application/json ContentType.
+type CreatePortalTokenJSONRequestBody = PortalToken
+
+// InvalidatePortalTokensJSONRequestBody defines body for InvalidatePortalTokens for application/json ContentType.
+type InvalidatePortalTokensJSONRequestBody InvalidatePortalTokensJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -136,6 +160,12 @@ type ServerInterface interface {
 
 	// (GET /api/v1/meters/{meterIdOrSlug}/subjects)
 	ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug)
+
+	// (POST /api/v1/portal/tokens)
+	CreatePortalToken(w http.ResponseWriter, r *http.Request)
+
+	// (POST /api/v1/portal/tokens/invalidate)
+	InvalidatePortalTokens(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -179,6 +209,16 @@ func (_ Unimplemented) QueryMeter(w http.ResponseWriter, r *http.Request, meterI
 
 // (GET /api/v1/meters/{meterIdOrSlug}/subjects)
 func (_ Unimplemented) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /api/v1/portal/tokens)
+func (_ Unimplemented) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /api/v1/portal/tokens/invalidate)
+func (_ Unimplemented) InvalidatePortalTokens(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -358,6 +398,14 @@ func (siw *ServerInterfaceWrapper) QueryMeter(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// ------------- Optional query parameter "windowTimeZone" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "windowTimeZone", r.URL.Query(), &params.WindowTimeZone)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "windowTimeZone", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "subject" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "subject", r.URL.Query(), &params.Subject)
@@ -402,6 +450,36 @@ func (siw *ServerInterfaceWrapper) ListMeterSubjects(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListMeterSubjects(w, r, meterIdOrSlug)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// CreatePortalToken operation middleware
+func (siw *ServerInterfaceWrapper) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePortalToken(w, r)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// InvalidatePortalTokens operation middleware
+func (siw *ServerInterfaceWrapper) InvalidatePortalTokens(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.InvalidatePortalTokens(w, r)
 	}))
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -548,6 +626,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/meters/{meterIdOrSlug}/subjects", wrapper.ListMeterSubjects)
 	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/portal/tokens", wrapper.CreatePortalToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/portal/tokens/invalidate", wrapper.InvalidatePortalTokens)
+	})
 
 	return r
 }
@@ -555,52 +639,56 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"oJuLm/8FAAD//9C/0+TQLgAA",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

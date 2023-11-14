@@ -187,7 +187,17 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 		queryParams.GroupBy = *params.GroupBy
 	}
 
-	if err := queryParams.Validate(); err != nil {
+	if params.WindowTimeZone != nil {
+		tz, err := time.LoadLocation(*params.WindowTimeZone)
+		if err != nil {
+			logger.Warn("invalid time zone", "error", err)
+			models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+			return
+		}
+		queryParams.WindowTimeZone = tz
+	}
+
+	if err := queryParams.Validate(meter.WindowSize); err != nil {
 		logger.Warn("invalid parameters", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
 		return
